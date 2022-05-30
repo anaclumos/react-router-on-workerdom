@@ -1,5 +1,8 @@
 <!DOCTYPE html>
 <html>
+  <head>
+    <script src="https://unpkg.com/@ampproject/worker-dom@latest/dist/worker/worker.mjs.map"></script>
+  </head>
   <body>
     <div src="index.js" id="upgrade-me"></div>
     <script type="module">
@@ -8,6 +11,9 @@
         document.getElementById('upgrade-me'),
         'https://unpkg.com/@ampproject/worker-dom@latest/dist/worker/worker.mjs'
       )
+      window.addEventListener('click', (e) => {
+        e.preventDefault()
+      })
     </script>
   </body>
 </html>

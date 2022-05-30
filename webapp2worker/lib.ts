@@ -130,10 +130,42 @@ function render({ headContent, bodyContent, styles, scripts }: RenderParams) {
 
 // worker polyfill
 importScripts('https://unpkg.com/history@latest/umd/history.development.js');
-globalThis.window = globalThis;
-window.history = HistoryLibrary.createMemoryHistory();
+globalThis.window = {
+  ...globalThis,
+  location: {
+    hash: '',
+    host: 'localhost:8080',
+    hostname: 'localhost',
+    href: 'http://localhost:8080/',
+    origin: 'http://localhost:8080',
+    pathname: '/',
+    port: '8080',
+    protocol: 'http:',
+    search: '',
+    assign(path) {
+      const url = new URL(path, this.href);
+      this.hash = url.hash;
+      this.host = url.host;
+      this.hostname = url.hostname;
+      this.href = url.href;
+      this.origin = url.origin;
+      this.pathname = url.pathname;
+      this.port = url.port;
+      this.protocol = url.protocol;
+      this.search = url.search;
+    },
+  }
+};
 
-document.defaultView = window;
+(function (w, d) {
+  const history = HistoryLibrary.createMemoryHistory();
+  history.replaceState = (state, unused, url) => {
+    history.push(url, state);
+  };
+  w.history = history;
+  d.defaultView = w;
+})(window, document);
+
 // end
 
 const _document = document.createDocumentFragment();
