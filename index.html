@@ -1,0 +1,13 @@
+<!DOCTYPE html>
+<html>
+  <body>
+    <div src="index.js" id="upgrade-me"></div>
+    <script type="module">
+      import { upgradeElement } from 'https://unpkg.com/@ampproject/worker-dom@latest/dist/main.mjs'
+      upgradeElement(
+        document.getElementById('upgrade-me'),
+        'https://unpkg.com/@ampproject/worker-dom@latest/dist/worker/worker.mjs'
+      )
+    </script>
+  </body>
+</html>
