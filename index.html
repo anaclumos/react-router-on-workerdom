@@ -1,18 +1,29 @@
 <!DOCTYPE html>
 <html>
-  <head>
-    <script src="https://unpkg.com/@ampproject/worker-dom@latest/dist/worker/worker.mjs.map"></script>
-  </head>
   <body>
     <div src="index.js" id="upgrade-me"></div>
     <script type="module">
       import { upgradeElement } from 'https://unpkg.com/@ampproject/worker-dom@latest/dist/main.mjs'
+      let workerContext = null
       upgradeElement(
         document.getElementById('upgrade-me'),
         'https://unpkg.com/@ampproject/worker-dom@latest/dist/worker/worker.mjs'
-      )
-      window.addEventListener('click', (e) => {
-        e.preventDefault()
+      ).then((workerdom) => {
+        workerContext = workerdom.workerContext_
+        workerContext.messageToWorker('BRANEWORKERMESSAGE={"button":"HELLO FROM MAIN!"}')
+        const intercept = (event) => {
+          event.preventDefault()
+          const message =
+            'BRANEWORKERMESSAGE=' +
+            JSON.stringify({
+              pointerType: event.pointerType,
+              type: event.type,
+              button: event.button,
+              buttons: event.buttons,
+            })
+          workerContext.messageToWorker(message)
+        }
+        document.addEventListener('click', intercept)
       })
     </script>
   </body>

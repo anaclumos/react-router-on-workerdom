@@ -129,9 +129,19 @@ function render({ headContent, bodyContent, styles, scripts }: RenderParams) {
   let result = `
 
 // worker polyfill
+
 importScripts('https://unpkg.com/history@latest/umd/history.development.js');
 globalThis.window = {
   ...globalThis,
+  event: {
+    ...globalThis.event,
+    preventDefault: () => {
+      console.warn('preventDefault() called');
+    },
+    stopPropagation: () => {
+      console.warn('stopPropagation() called');
+    },
+  },
   location: {
     hash: '',
     host: 'localhost:8080',
@@ -158,15 +168,69 @@ globalThis.window = {
 };
 
 (function (w, d) {
-  const history = HistoryLibrary.createMemoryHistory();
+  const history = HistoryLibrary.createMemoryHistory()
   history.replaceState = (state, unused, url) => {
-    history.push(url, state);
-  };
-  w.history = history;
-  d.defaultView = w;
-})(window, document);
+    history.push(url, state)
+  }
+  w.history = history
+  d.defaultView = w
 
-// end
+  // polyfill window.event and this worker's event
+  const event = {
+    ...w.event,
+    preventDefault: () => {
+      console.warn('preventDefault() called');
+    },
+    stopPropagation: () => {
+      console.warn('stopPropagation() called');
+    },
+  }
+})(window, document)
+
+// check if nested object has key
+function hasKey(obj, key) {
+  if (Object.keys(obj).includes(key))
+    return true
+  for (const k in obj) {
+    if (typeof obj[k] === 'object' && hasKey(obj[k], key))
+      return true
+  }
+  return false
+}
+
+// check if nested object has value
+function hasValue(obj, value) {
+  if (obj === value) {
+    return true
+  }
+  if (typeof obj !== 'object') {
+    return false
+  }
+  for (const key in obj) {
+    if (obj[key] === value) {
+      return true
+    }
+    if (hasValue(obj[key], value)) {
+      return true
+    }
+  }
+  return false
+}
+
+// worker get message from main thread
+
+onmessage = (obj) => {
+  let str = String(obj?.data)
+  if (str.startsWith('BRANEWORKERMESSAGE=')) {
+    str = str.replace('BRANEWORKERMESSAGE=', '')
+    const e = JSON.parse(str)
+    if (hasKey(e, 'button')) {
+      console.log('worker received message from main thread:', e)
+    }
+  }
+}
+
+// end of worker polyfill
 
 const _document = document.createDocumentFragment();
 
