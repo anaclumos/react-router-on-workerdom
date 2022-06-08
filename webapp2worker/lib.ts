@@ -129,19 +129,9 @@ function render({ headContent, bodyContent, styles, scripts }: RenderParams) {
   let result = `
 
 // worker polyfill
-
 importScripts('https://unpkg.com/history@latest/umd/history.development.js');
 globalThis.window = {
   ...globalThis,
-  event: {
-    ...globalThis.event,
-    preventDefault: () => {
-      console.warn('preventDefault() called');
-    },
-    stopPropagation: () => {
-      console.warn('stopPropagation() called');
-    },
-  },
   location: {
     hash: '',
     host: 'localhost:8080',
@@ -167,6 +157,20 @@ globalThis.window = {
   }
 };
 
+// worker get message from main thread
+onmessage = (obj) => {
+  let str = String(obj?.data)
+  if (str.startsWith('BRANEWORKERMESSAGE=')) {
+    str = str.replace('BRANEWORKERMESSAGE=', '')
+    const e = JSON.parse(str)
+    if (hasKey(e, 'button')) {
+      let event = new CustomEvent("customclick", { detail: e })
+      console.log('worker received message from main thread:', event)
+      document.dispatchEvent(event)
+    }
+  }
+}
+
 (function (w, d) {
   const history = HistoryLibrary.createMemoryHistory()
   history.replaceState = (state, unused, url) => {
@@ -174,17 +178,9 @@ globalThis.window = {
   }
   w.history = history
   d.defaultView = w
-
-  // polyfill window.event and this worker's event
-  const event = {
-    ...w.event,
-    preventDefault: () => {
-      console.warn('preventDefault() called');
-    },
-    stopPropagation: () => {
-      console.warn('stopPropagation() called');
-    },
-  }
+  d.addEventListener('customclick', (e) => {
+    console.log('worker received customclick event', e)
+  })
 })(window, document)
 
 // check if nested object has key
@@ -196,38 +192,6 @@ function hasKey(obj, key) {
       return true
   }
   return false
-}
-
-// check if nested object has value
-function hasValue(obj, value) {
-  if (obj === value) {
-    return true
-  }
-  if (typeof obj !== 'object') {
-    return false
-  }
-  for (const key in obj) {
-    if (obj[key] === value) {
-      return true
-    }
-    if (hasValue(obj[key], value)) {
-      return true
-    }
-  }
-  return false
-}
-
-// worker get message from main thread
-
-onmessage = (obj) => {
-  let str = String(obj?.data)
-  if (str.startsWith('BRANEWORKERMESSAGE=')) {
-    str = str.replace('BRANEWORKERMESSAGE=', '')
-    const e = JSON.parse(str)
-    if (hasKey(e, 'button')) {
-      console.log('worker received message from main thread:', e)
-    }
-  }
 }
 
 // end of worker polyfill
